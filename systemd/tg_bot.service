@@ -1,0 +1,14 @@
+[Unit]
+Description= /.../
+After = network.target
+
+[Service]
+User=tgbot
+Groups=tgbot
+Type=simple
+WorkingDirectory=/.../
+ExecStart=/.../
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
