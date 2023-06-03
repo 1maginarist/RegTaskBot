@@ -87,19 +87,19 @@ async def set_user_task(chat_id, task_id, text, documents):
     try:
         for user_id in chat_id:
             try:
-                msg_1 = await bot.send_message(chat_id=user_id, text=text)
-                await send_message(msg_1.chat.id, msg_1.message_id)
+                await bot.send_message(chat_id=user_id, text=text)
+
                 for doc in documents:
-                    msg = await bot.send_document(chat_id=user_id, document=doc)
-                    await send_message(msg.chat.id, msg.message_id)
+                    await bot.send_document(chat_id=user_id, document=doc)
                 await asyncio.sleep(1)
 
-                msg_3 = await bot.send_message(chat_id=user_id, text='Когда готовы нажмите "Приступить"',
-                                               reply_markup=start_task_keyboard)
-                await send_message(msg_3.chat.id, msg_3.message_id)
+                await bot.send_message(chat_id=user_id, text='Когда готовы нажмите "Приступить"',
+                                       reply_markup=start_task_keyboard)
 
+                await Tasks.task_id.set()
                 state = dp.current_state(chat=user_id)
-                await state.set_state(Tasks.chat_id)
+                await state.update_data(task_id=task_id)
+                await state.set_state(Tasks.chat_id.state)
 
             except BotBlocked as err:
                 blocked_users.append(user_id)
@@ -193,7 +193,7 @@ async def end_task(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 
     data = await state.get_data()
-    await call.answer(f"****{data}****")
+    await call.message.answer(f"****{data}****")
 
     async with state.proxy() as data:
         await call.message.answer(f"{data['buffer']}, {data['chat_id']}")
