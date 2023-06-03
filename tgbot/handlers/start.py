@@ -119,14 +119,14 @@ async def set_local(call: types.CallbackQuery, callback_data: dict, state: FSMCo
     async with state.proxy() as data:
         data['city'] = callback_data.get('id')
 
-        await call.message.answer(f"Проверьте правильность введенных данных:\n"
-                                  f"Имя: {data['name']}\n"
-                                  f"Фамилия: {data['surname']}\n"
-                                  f"Отчество: {data['middle_name']}\n"
-                                  f"Номер телефона: {data['phone_number']}\n"
-                                  f"Email: {data['email']}\n"
-                                  f"Регион: {data['region']}\n"
-                                  f"Область: {data['city']}", reply_markup=confirm_keyboard)
+        await call.message.edit_text(f"Проверьте правильность введенных данных:\n"
+                                     f"Имя: {data['name']}\n"
+                                     f"Фамилия: {data['surname']}\n"
+                                     f"Отчество: {data['middle_name']}\n"
+                                     f"Номер телефона: {data['phone_number']}\n"
+                                     f"Email: {data['email']}\n"
+                                     f"Регион: {data['region']}\n"
+                                     f"Область: {data['city']}", reply_markup=confirm_keyboard)
     await Registration.confirm.set()
 
 

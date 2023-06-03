@@ -1,31 +1,29 @@
 from flask import Flask, request
 from flask_restful import Api
-from aiogram import types, Dispatcher
-from aiogram import Bot
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-import asyncio
-from tgbot.config import load_config
 from pyrogram import Client
 from pyrogram.raw import functions
 import secrets
-from aiogram.utils.exceptions import BotBlocked
-from tgbot.keyboards.inline_task_buttons import start_task_keyboard, reset_task_keyboard
-from tgbot.states import Tasks
+from tgbot.handlers.tasks import confirmation_user, set_user_task, accept_delete
 
 
 app = Flask(__name__)
 api = Api()
-config = load_config(".env")
-bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+
+
+
+@app.post('/bot.site.ru/accept')
+async def accept():
+        data = request.get_json()
+        chat_id = data['chat_id']
+        message_id = data['message_id']
+
+        resp = await accept_delete(chat_id=chat_id, message_ids=message_id)
 
 
 # Endpoint to confirm that user completed the task/
 # If the task is completed successfully, we inform the person about it. If not, we ask them to retry the task.
 @app.post('/bot.site.ru/confirmed')
 async def confirmed_user():
-    blocked_users = []
 
     try:
         data = request.get_json()
@@ -33,36 +31,20 @@ async def confirmed_user():
         task_id = data.get('task_id')
         confirmation = data.get('confirmation')
 
-        if confirmation:
-            for user_id in chat_id:
-                try:
-                    await bot.send_message(chat_id=user_id, text=f"Ваша задача - {task_id} была одобрена")
-                except BotBlocked as err:
-                    blocked_users.append(user_id)
+        resp = await confirmation_user(chat_id=chat_id, task_id=task_id, confirmation=confirmation)
 
+        if resp['code']:
             return {
                 "Status": "Success",
                 "Code": 200,
-                "BlockedUsers": blocked_users
+                "BlockedUsers": resp['blocked_users']
             }
 
         else:
-            for user_id in chat_id:
-                try:
-                    await bot.send_message(chat_id=user_id, text="Ваша задача была отклонена\n"
-                                                                 "Пожалуйста,приcтупите к выполнению задачи снова",
-                                           reply_markup=reset_task_keyboard)
-
-                    state = dp.current_state(chat=user_id)
-                    await state.set_state(Tasks.chat_id)
-
-                except BotBlocked as err:
-                    blocked_users.append(user_id)
-
             return {
                 "Status": "Success",
                 "Code": 200,
-                "BlockedUsers": blocked_users
+                "BlockedUsers": resp['blocked_users']
             }
 
     except Exception as err:
@@ -85,27 +67,20 @@ async def write_user():
         text = data.get('text')
         documents = data.get('documents')
 
-        for user_id in chat_id:
-            try:
-                await bot.send_message(chat_id=user_id, text=text)
-                for doc in documents:
-                    await bot.send_document(chat_id=user_id, document=doc)
-                await asyncio.sleep(1)
+        resp = await set_user_task(chat_id=chat_id, task_id=task_id, text=text, documents=documents)
 
-                await bot.send_message(chat_id=user_id, text='Когда готовы нажмите "Приступить"',
-                                       reply_markup=start_task_keyboard)
-
-                state = dp.current_state(chat=user_id)
-                await state.set_state(Tasks.chat_id)
-
-            except BotBlocked as err:
-                blocked_users.append(user_id)
-
-        return {
-            "Status": "Success",
-            "Code": 200,
-            "BlockedUsers": blocked_users
-        }
+        if resp['code']:
+            return {
+                "Status": "Success",
+                "Code": 200,
+                "BlockedUsers": blocked_users
+            }
+        else:
+            return {
+                "Status": "Error",
+                "Code": 400,
+                "Error": resp['error']
+            }
 
     except Exception as err:
         return {
