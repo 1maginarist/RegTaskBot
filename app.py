@@ -3,7 +3,7 @@ from flask_restful import Api
 from pyrogram import Client
 from pyrogram.raw import functions
 import secrets
-from tgbot.handlers.tasks import confirmation_user, set_user_task, accept_delete
+from tgbot.handlers.tasks import confirmation_user, set_user_task, delete_messages
 
 
 app = Flask(__name__)
@@ -11,27 +11,38 @@ api = Api()
 
 
 
-@app.post('/bot.site.ru/accept')
-async def accept():
-        data = request.get_json()
-        chat_id = data['chat_id']
-        message_id = data['message_id']
+@app.post('/delete')
+async def delete():
+    data = request.get_json()
+    chat_id = data['chat_id']
+    messages = data['messages']
 
-        resp = await accept_delete(chat_id=chat_id, message_ids=message_id)
+    resp = await delete_messages(chat_id=chat_id, message_ids=messages)
 
+    if resp['code']:
+        return {
+            "Status": "Success",
+            "Code": 200,
+        }
+
+    else:
+        return {
+            "Status": "Success",
+            "Code": 200,
+        }
 
 # Endpoint to confirm that user completed the task/
 # If the task is completed successfully, we inform the person about it. If not, we ask them to retry the task.
-@app.post('/bot.site.ru/confirmed')
+@app.post('/confirmed')
 async def confirmed_user():
 
     try:
         data = request.get_json()
         chat_id = data.get('chat_id')
-        task_id = data.get('task_id')
+        text = data.get('text')
         confirmation = data.get('confirmation')
 
-        resp = await confirmation_user(chat_id=chat_id, task_id=task_id, confirmation=confirmation)
+        resp = await confirmation_user(chat_id=chat_id, text=text, confirmation=confirmation)
 
         if resp['code']:
             return {
@@ -42,8 +53,8 @@ async def confirmed_user():
 
         else:
             return {
-                "Status": "Success",
-                "Code": 200,
+                "Status": "Error",
+                "Code": 400,
                 "BlockedUsers": resp['blocked_users']
             }
 
@@ -56,24 +67,22 @@ async def confirmed_user():
 
 
 # Endpoint to send user a new task
-@app.post('/bot.site.ru/writeUser')
+@app.post('/writeUser')
 async def write_user():
-    blocked_users = []
 
     try:
         data = request.get_json()
         chat_id = data.get('chat_id')
-        task_id = data.get('task_id')
         text = data.get('text')
         documents = data.get('documents')
 
-        resp = await set_user_task(chat_id=chat_id, task_id=task_id, text=text, documents=documents)
+        resp = await set_user_task(chat_id=chat_id, text=text, documents=documents)
 
         if resp['code']:
             return {
                 "Status": "Success",
                 "Code": 200,
-                "BlockedUsers": blocked_users
+                "BlockedUsers": resp['blocked_users']
             }
         else:
             return {
@@ -91,7 +100,7 @@ async def write_user():
 
 
 # Endpoint to authorize a new telegram account
-@app.post("/bot.site.ru/authorize")
+@app.post("/authorize")
 async def authorize():
     try:
         data = request.get_json()
@@ -113,7 +122,7 @@ async def authorize():
 
 
 # Endpoint to send messages from authorized account
-@app.post("/bot.site.ru/sendMessage")
+@app.post("/sendMessage")
 async def send_message():
     try:
         data = request.get_json()
@@ -137,7 +146,7 @@ async def send_message():
 
 
 # Endpoint to create groups from authorized account
-@app.post("/bot.site.ru/createGroup")
+@app.post("/createGroup")
 async def create_group():
     try:
         data = request.get_json()
@@ -163,7 +172,7 @@ async def create_group():
 
 
 # Endpoint to delete group created earlier
-@app.post("/bot.site.ru/deleteGroup")
+@app.post("/deleteGroup")
 async def delete_group():
     try:
         data = request.get_json()

@@ -15,6 +15,7 @@ from tgbot.keyboards import create_locals_keyboard
 from tgbot.keyboards.callback_datas import regions_callback
 from tgbot.keyboards.callback_datas import locals_callback
 from tgbot.keyboards.inline_task_buttons import confirm_keyboard
+from tgbot.handlers.tasks import send_message_api
 
 
 # Taking values from .env
@@ -25,6 +26,8 @@ auth_token = os.getenv("AUTH_TOKEN")
 
 # Start handler (making request to check if user in database/Greetings if true, start registration if false)
 async def command_start(message: types.Message):
+
+    await send_message_api(message.from_user.id, message.message_id)
 
     params = {
         "login": message.from_user.username,
@@ -39,67 +42,90 @@ async def command_start(message: types.Message):
         async with session.post(f'{host}/api/user/check', params=params) as resp:
             response = await resp.json()
             if response.get("ok"):
-                await message.answer("Привет и добро пожаловать в нашего бота!")
+                temp_mess = await message.answer("Привет и добро пожаловать в нашего бота!")
+                await send_message_api(temp_mess.chat.id, temp_mess.message_id)
+                print(temp_mess.message_id)
             else:
-                await message.answer("Привет! Для начала тебе нужно пройти регистрацию.\n"
+                temp_mess = await message.answer("Привет! Для начала тебе нужно пройти регистрацию.\n"
                                      "Вы можете в любой момент прервать регистрацию командой /cancel\n"
                                      "Введите свое имя:")
+
+                await send_message_api(temp_mess.chat.id, temp_mess.message_id)
                 await Registration.name.set()
 
 
 # Handler for any messages that can be sent to bot while in waiting mode
 async def basic_text(message: types.Message):
-    await message.answer("Ожидайте, бот сам вам напишет, когда для вас появятся задачи")
+    await send_message_api(message.from_user.id, message.message_id)
+
+    temp_mess = await message.answer("Ожидайте, бот сам вам напишет, когда для вас появятся задачи")
+    await send_message_api(temp_mess.chat.id, temp_mess.message_id)
 
 
 async def set_name(message: types.Message, state: FSMContext):
 
+    await send_message_api(message.from_user.id, message.message_id)
+
     async with state.proxy() as data:
         data["name"] = message.text
         data['username'] = message.from_user.username
-    await message.answer("Введите фамилию:")
+    temp_mess = await message.answer("Введите фамилию:")
+
+    await send_message_api(temp_mess.chat.id, temp_mess.message_id)
     await Registration.surname.set()
 
 
 async def set_surname(message: types.Message, state: FSMContext):
+    await send_message_api(message.from_user.id, message.message_id)
 
     async with state.proxy() as data:
         data["surname"] = message.text
-    await message.answer("Введите отчество:")
+    temp_mess = await message.answer("Введите отчество:")
+
+    await send_message_api(temp_mess.chat.id, temp_mess.message_id)
     await Registration.middle_name.set()
 
 
 async def set_middle_name(message: types.Message, state: FSMContext):
+    await send_message_api(message.from_user.id, message.message_id)
 
     async with state.proxy() as data:
         data["middle_name"] = message.text
-    await message.answer("Введите телефон:")
+    temp_mess = await message.answer("Введите телефон:")
+
+    await send_message_api(temp_mess.chat.id, temp_mess.message_id)
     await Registration.phone_number.set()
 
 
 async def set_phone_number(message: types.Message, state: FSMContext):
     phone_regexp = r'^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$'
+    await send_message_api(message.from_user.id, message.message_id)
 
     if re.match(phone_regexp, message.text):
         async with state.proxy() as data:
             data["phone_number"] = message.text
-        await message.answer("Введите email:")
+        temp_mess = await message.answer("Введите email:")
+        await send_message_api(temp_mess.chat.id, temp_mess.message_id)
         await Registration.email.set()
     else:
-        await message.answer("Номер телефона неверный, повторите попытку")
+        temp_mess = await message.answer("Номер телефона неверный, повторите попытку")
+        await send_message_api(temp_mess.chat.id, temp_mess.message_id)
 
 
 async def set_email(message: types.Message, state: FSMContext):
     email_regex = r'[^@ \t\r\n]+@[^@ \t\r\n]+\.[^@ \t\r\n]+'
+    await send_message_api(message.from_user.id, message.message_id)
 
     if re.match(email_regex, message.text):
         async with state.proxy() as data:
             data["email"] = message.text
         keyboard = await create_region_keyboard()
-        await message.answer("Выберите ваш регион:", reply_markup=keyboard)
+        temp_mess = await message.answer("Выберите ваш регион:", reply_markup=keyboard)
+        await send_message_api(temp_mess.chat.id, temp_mess.message_id)
         await Registration.region.set()
     else:
-        await message.answer("Email неверный, повторите попытку")
+        temp_mess = await message.answer("Email неверный, повторите попытку")
+        await send_message_api(temp_mess.chat.id, temp_mess.message_id)
 
 
 async def set_region(call: types.CallbackQuery, callback_data: dict, state: FSMContext):
@@ -165,11 +191,14 @@ async def confirm(call: types.CallbackQuery, state: FSMContext):
 
 
 async def cancel_handler(msg: types.Message, state: FSMContext):
+    await send_message_api(msg.from_user.id, msg.message_id)
+
     current_state = await state.get_state()
     if current_state is None:
         return
     await state.finish()
-    await msg.answer('Ok')
+    temp_mess = await msg.answer('Ok')
+    await send_message_api(temp_mess.chat.id, temp_mess.message_id)
 
 
 def register_start(dp: Dispatcher):
