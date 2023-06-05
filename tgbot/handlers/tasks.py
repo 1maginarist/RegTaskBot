@@ -14,7 +14,6 @@ from tgbot.config import load_config
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import MessageToEditNotFound, MessageCantBeEdited, MessageCantBeDeleted, MessageToDeleteNotFound
 
-
 load_dotenv()
 host = os.getenv("HOST")
 auth_token = os.getenv("AUTH_TOKEN")
@@ -44,8 +43,7 @@ async def delete_messages(chat_id, message_ids: list):
 # Function to execute endpoint for confirmation in app.py
 async def confirmation_user(chat_id, text, confirmation):
     blocked_users = []
-
-    if confirmation:
+    if confirmation == 'true':
         for user_id in chat_id:
             try:
                 temp_mess = await bot.send_message(chat_id=user_id, text=f"{text}")
@@ -179,7 +177,7 @@ async def step1_doc(message: types.Message, state: FSMContext):
             if data['messages'] != 0:
                 await bot.delete_message(chat_id=message.from_user.id, message_id=data['messages'])
             data['messages'] = temp_mess.message_id
-            data['buffer'] = data['buffer'] + f'***{message.document.file_id}'
+            data['buffer'] = data['buffer'] + f'***file:{message.document.file_id}'
         except AttributeError as err:
             await message.answer("Не удалось обработать ваш файл")
 
@@ -194,7 +192,7 @@ async def step1_photo(message: types.Message, state: FSMContext):
             if data['messages'] != 0:
                 await bot.delete_message(chat_id=message.from_user.id, message_id=data['messages'])
             data['messages'] = temp_mess.message_id
-            data['buffer'] = data['buffer'] + f'***{message.photo[0].file_id}'
+            data['buffer'] = data['buffer'] + f'***file:{message.photo[-1].file_id}'
             if 'caption' in message:
                 data['buffer'] = data['buffer'] + f'***{message.caption}'
         except AttributeError as err:
