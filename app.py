@@ -24,10 +24,9 @@ async def delete():
             "Status": "Success",
             "Code": 200,
         }
-
     else:
         return {
-            "Status": "Success",
+            "Status": "Error",
             "Code": 200,
         }
 
@@ -53,8 +52,8 @@ async def confirmed_user():
 
         else:
             return {
-                "Status": "Error",
-                "Code": 400,
+                "Status": "Success",
+                "Code": 200,
                 "BlockedUsers": resp['blocked_users']
             }
 
