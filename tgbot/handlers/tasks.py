@@ -94,6 +94,7 @@ async def send_message_api(chat_id, message_id):
 # Function to execute tasks sending in app.py
 async def set_user_task(chat_id, text, documents):
     blocked_users = []
+    unsend_docs = []
 
     try:
         for user_id in chat_id:
@@ -102,8 +103,11 @@ async def set_user_task(chat_id, text, documents):
                 await send_message_api(user_id, temp_mess.message_id)
 
                 for doc in documents:
-                    temp_mess = await bot.send_document(chat_id=user_id, document=doc)
-                    await send_message_api(user_id, temp_mess.message_id)
+                    try:
+                        temp_mess = await bot.send_document(chat_id=user_id, document=doc)
+                        await send_message_api(user_id, temp_mess.message_id)
+                    except Exception as err:
+                        unsend_docs.append(doc)
                 await asyncio.sleep(1)
 
                 temp_mess = await bot.send_message(chat_id=user_id, text='Когда готовы нажмите "Приступить"',
@@ -115,13 +119,15 @@ async def set_user_task(chat_id, text, documents):
 
         return {
             "code": True,
-            "blocked_users": blocked_users
+            "blocked_users": blocked_users,
+            "unsend_docs": unsend_docs
         }
 
     except Exception as err:
         return {
             "code": False,
-            "error": err
+            "error": err,
+            "unsend_docs": unsend_docs
         }
 
 
@@ -173,6 +179,7 @@ async def reset_task(call: types.CallbackQuery, state: FSMContext):
 async def step1_doc(message: types.Message, state: FSMContext):
     await send_message_api(message.from_user.id, message.message_id)
     temp_mess = await message.answer("Для завершения нажмите 'завершить'", reply_markup=end_task_keyboard)
+    await send_message_api(message.chat.id, temp_mess.message_id)
 
     async with state.proxy() as data:
         try:
@@ -188,6 +195,7 @@ async def step1_doc(message: types.Message, state: FSMContext):
 async def step1_photo(message: types.Message, state: FSMContext):
     await send_message_api(message.from_user.id, message.message_id)
     temp_mess = await message.answer("Для завершения нажмите 'завершить'", reply_markup=end_task_keyboard)
+    await send_message_api(message.chat.id, temp_mess.message_id)
 
     async with state.proxy() as data:
         try:
@@ -205,6 +213,7 @@ async def step1_photo(message: types.Message, state: FSMContext):
 async def step1_text(message: types.Message, state: FSMContext):
     await send_message_api(message.from_user.id, message.message_id)
     temp_mess = await message.answer("Для завершения нажмите 'завершить'", reply_markup=end_task_keyboard)
+    await send_message_api(message.chat.id, temp_mess.message_id)
 
     async with state.proxy() as data:
         try:
